@@ -2,4 +2,4 @@
 
 Basic Frontent for DocXplorer 
 
-![screenshot](screenshots/sample.png)
+![screenshot](src/screenshots/sample.png)
