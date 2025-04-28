@@ -1,30 +1,27 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { FolderPlus, Key, FileText, Upload, Bot, Code } from "lucide-react";
-import { Toaster } from "@/components/ui/sonner";
-// import { useToast } from "@/components/hooks/use-toast"
+import { FolderPlus, Key, FileText, Upload, Bot, Code, Trash2, Circle} from "lucide-react";
+import { toast } from "sonner"
 
-const Core = () => {
+const Home = () => {
+  const navigate = useNavigate();
   const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
-  const [isGenerateKeyOpen, setIsGenerateKeyOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [collectionName, setCollectionName] = useState('');
   const [summaryCollectionName, setSummaryCollectionName] = useState('');
-  const [apiKey, setApiKey] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [documents, setDocuments] = useState([]);
-  const [isTestBotOpen, setIsTestBotOpen] = useState(false);
+  const [isCreated, setIsCreated] = useState(false);
   const [isWidgetCodeOpen, setIsWidgetCodeOpen] = useState(false);
-  const [userMessage, setUserMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState([]);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/getdocuments",
+    fetch("http://127.0.0.1:8000/list-documents",
       { method: 'GET',
         headers: {
           'Accept': 'application/json'
@@ -33,25 +30,21 @@ const Core = () => {
     )
     .then(response => response.json())
     .then(data => {
-      let docs = data['result']
+      let docs = data['result'] 
       setDocuments(docs)
-      console.log(data)
     })
     .catch(error => console.error('Error:', error));
   },[])
 
   const handleCreateCollection = () => {
     if (!collectionName) {
-      Toaster({
-        title: "Error",
-        description: "Please enter a collection name",
-        variant: "destructive",
-      });
+      toast.error("Please enter a collection name");
       return;
     }
     let payload = {"collection_name": collectionName, "summary_collection_name": summaryCollectionName}
     fetch("http://127.0.0.1:8000/create-collection", 
-      {method: 'POST',
+      {
+        method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -59,24 +52,17 @@ const Core = () => {
         body: JSON.stringify(payload)
       })
     .then(response => response.json())
-    .then(_ => Toaster({
-        title: "Success",
-        description: `Collection "${collectionName}" created successfully!`,
-      }))
-    .catch(error => console.error('Error:', error));
-
-    // setCollectionName('');
-    setIsCreateCollectionOpen(false);
-  };
-
-  const handleGenerateApiKey = () => {
-    const newApiKey = `key_${Math.random().toString(36).substring(2, 15)}`;
-    setApiKey(newApiKey);
-
-    // toast({
-    //   title: "API Key Generated",
-    //   description: "Your API key has been generated successfully!",
-    // });
+    .then(_ => 
+      toast.success(`Collection "${collectionName}" created successfully!`)
+    )
+    .catch(error =>{
+      toast.error(`Cant create  a Collection "${collectionName}" right now`)
+      console.error("Error: ",error)
+    })
+    .finally(_ => {
+      setIsCreateCollectionOpen(false);
+      setIsCreated(true);
+    })
   };
 
   const handleFileChange = (e) => {
@@ -87,11 +73,7 @@ const Core = () => {
 
   const handleUploadDocument = () => {
     if (!selectedFile) {
-    //   toast({
-    //     title: "Error",
-    //     description: "Please select a file to upload",
-    //     variant: "destructive",
-    //   });
+      toast.error("Please select a file to upload");
       return;
     }
 
@@ -112,44 +94,33 @@ const Core = () => {
       .then(data => {
         console.log(data)
         setDocuments([...documents, data]);
+        toast.success(`File "${selectedFile.name}" uploaded successfully!`)
       })
-      .catch(error => console.error('Error:', error))
-
-    // toast({
-    //   title: "Upload Successful",
-    //   description: `File "${selectedFile.name}" uploaded successfully!`,
-    // });
+      .catch(error => {
+        toast.error(`File "${selectedFile.name}" upload Failed!`)
+        console.log("Error: " + error)
+      })
 
     setSelectedFile(null);
     setIsUploadOpen(false);
   };
 
-  const handleSendMessage = () => {
-      if (!userMessage.trim()) return;
-      setChatMessages([...chatMessages, {role: 'user', content: userMessage}])
-      setUserMessage('');
-      let payload = {"query" : userMessage, "collection_name": collectionName, "summary_collection_name": summaryCollectionName}
-      fetch("http://0.0.0.0:8000/query-docs",
-        {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log(data)
-          console.log(data['response'])
-          const newMessages = [
-            ...chatMessages,
-            {role: 'bot', content: data['response']}
-          ]
-          setChatMessages(newMessages);
-        })
-        .catch(error => console.error('Error:', error))
-    };
+  const handleDeleteDocument = (id) => {
+    
+    let payload = {"id": id,"collection_name": collectionName,"summary_collection_name": summaryCollectionName}
+    fetch("http://127.0.0.1:8000/delete-document",
+      {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }
+    )
+    setDocuments(documents.filter(doc => doc.id !== id));
+    toast.success("The document has been deleted successfully.")
+  };
 
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return bytes + ' B';
@@ -177,8 +148,8 @@ const Core = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-4 text-muted-foreground">Create a new collection to index your files.</p>
-            <Button onClick={() => setIsCreateCollectionOpen(true)}>{collectionName != "" ? "Show Collection" : "Create Collection"}</Button>
+            <p className="mb-4 text-muted-foreground">{isCreated ? "See your current active collections" : "Create a new collection to index your files."}</p>
+            <Button onClick={() => setIsCreateCollectionOpen(true)}>{isCreated ? "Show Collection" : "Create Collection"}</Button>
           </CardContent>
         </Card>
 
@@ -191,7 +162,7 @@ const Core = () => {
           </CardHeader>
           <CardContent>
             <p className="mb-4 text-muted-foreground">Generate API keys to access via widget</p>
-            <Button onClick={() => setIsGenerateKeyOpen(true)}>Generate API Key</Button>
+            <Button onClick={() => navigate("/apikeys")}>Generate API Key</Button>
           </CardContent>
         </Card>
       </div>
@@ -205,7 +176,7 @@ const Core = () => {
           </CardHeader>
           <CardContent>
             <p className="mb-4 text-muted-foreground">Test your document chatbot to see how it interacts with users.</p>
-            <Button onClick={() => setIsTestBotOpen(true)}>Open Chat</Button>
+            <Button onClick={() => navigate("/test")}>Open Chat</Button>
           </CardContent>
         </Card>
         <Card>
@@ -241,16 +212,22 @@ const Core = () => {
                   <TableHead>Document Name</TableHead>
                   <TableHead>File Size</TableHead>
                   <TableHead>Uploaded Date</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {documents.length > 0 ? (
                   documents.map((doc) => (
                     <TableRow key={doc.id}>
-                      <TableCell className="font-medium">{doc.id}</TableCell>
+                      <TableCell className="font-medium">{doc.id.substring(0,8)}</TableCell>
                       <TableCell>{doc.document_name}</TableCell>
                       <TableCell>{doc.document_size}</TableCell>
                       <TableCell>{doc.uploaded_date}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteDocument(doc.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
@@ -270,65 +247,54 @@ const Core = () => {
       <Dialog open={isCreateCollectionOpen} onOpenChange={setIsCreateCollectionOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New Collection</DialogTitle>
+            <DialogTitle>{isCreated ? "Active Collections" : "Create New Collection"}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="collection-name">Collection Name</Label>
-              <Input
-                id="collection-name"
-                placeholder="Enter collection name"
-                value={collectionName}
-                onChange={(e) => setCollectionName(e.target.value)}
-              />
-              <Label htmlFor="collection-name">Summary Collection Name</Label>
-              <Input
-                id="summary-collection-name"
-                placeholder="Enter sumarry collection name"
-                value={summaryCollectionName}
-                onChange={(e) => setSummaryCollectionName(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateCollectionOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateCollection}>Create Collection</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Generate API Key Dialog */}
-      <Dialog open={isGenerateKeyOpen} onOpenChange={setIsGenerateKeyOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Generate API Key</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {apiKey ? (
-              <div className="grid gap-2">
-                <Label htmlFor="api-key">Your API Key</Label>
-                <div className="flex">
-                  <Input
-                    id="api-key"
-                    value={apiKey}
-                    readOnly
-                    className="font-mono text-sm"
-                  />
+          {isCreated ? (
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-2 p-4 border rounded-lg shadow-sm">
+                <Circle className="h-3 w-3 fill-green-500 text-green-500" />
+                <div>
+                    <p className="font-medium">{collectionName}</p>
+                    <p className="text-sm text-muted-foreground">{"Collection Name"}</p>
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Make sure to copy this key and store it securely. It won't be displayed again.
-                </p>
               </div>
-            ) : (
-              <p className="text-center py-4 text-muted-foreground">
-                Click the button below to generate a new API key
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsGenerateKeyOpen(false)}>Close</Button>
-            {!apiKey && <Button onClick={handleGenerateApiKey}>Generate Key</Button>}
-          </DialogFooter>
+              <div className="flex items-center gap-2 p-4 border rounded-lg shadow-sm">
+                <Circle className="h-3 w-3 fill-green-500 text-green-500" />
+                <div>
+                    <p className="font-medium">{summaryCollectionName}</p>
+                    <p className="text-sm text-muted-foreground">{"Summary Collection Name"}</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="collection-name">Collection Name</Label>
+                <Input
+                  id="collection-name"
+                  placeholder="Enter collection name"
+                  value={collectionName}
+                  onChange={(e) => setCollectionName(e.target.value)}
+                />
+                
+                <Label htmlFor="summary-collection-name">Summary Collection Name</Label>
+                <Input
+                  id="summary-collection-name"
+                  placeholder="Enter summary collection name"
+                  value={summaryCollectionName}
+                  onChange={(e) => setSummaryCollectionName(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsCreateCollectionOpen(false)}>
+            {isCreated ? "Close" : "Cancel"}
+          </Button>
+          {!isCreated && (
+            <Button onClick={handleCreateCollection}>Create Collection</Button>
+          )}
+        </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -359,42 +325,6 @@ const Core = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Dialog open={isTestBotOpen} onOpenChange={setIsTestBotOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Test Your Document Bot</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col h-[400px]">
-            <div className="flex-1 overflow-y-auto mb-4 space-y-4 p-4 rounded-lg bg-muted">
-              {chatMessages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary"
-                    }`}
-                  >
-                    {message.content}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Type your message..."
-                value={userMessage}
-                onChange={(e) => setUserMessage(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              />
-              <Button onClick={handleSendMessage}>Send</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
       <Dialog open={isWidgetCodeOpen} onOpenChange={setIsWidgetCodeOpen}>
         <DialogContent>
           <DialogHeader>
@@ -413,10 +343,8 @@ const Core = () => {
                   className="absolute top-2 right-2"
                   onClick={() => {
                     navigator.clipboard.writeText(widgetCode);
-                    toast({
-                      title: "Copied!",
-                      description: "Widget code copied to clipboard"
-                    });
+                    toast.success("Widget code copied to clipboard")
+                    setIsWidgetCodeOpen(false)
                   }}
                 >
                   Copy
@@ -435,4 +363,4 @@ const Core = () => {
   );
 };
 
-export default Core;
+export default Home;
