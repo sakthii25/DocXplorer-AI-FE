@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,12 @@ import { Loader } from "lucide-react";
 const TestBot = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
+  const bottomRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
@@ -136,6 +141,7 @@ const TestBot = () => {
                 </div>
               </div>
             ))}
+            <div ref={bottomRef} />
             </div>
             <div className="flex gap-2">
               <Input

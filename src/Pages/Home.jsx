@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { FolderPlus, Key, FileText, Upload, Bot, Code, Trash2, Circle} from "lucide-react";
+import { FolderPlus, Key, FileText, Upload, Bot, Code, Trash2, Circle, Copy} from "lucide-react";
 import { toast } from "sonner"
 
 const Home = () => {
@@ -128,12 +128,22 @@ const Home = () => {
     else return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  const widgetCode = `<iframe
-      src="https://your-domain.com/widget"
-      width="100%"
-      height="600px"
-      frameborder="0"
-    ></iframe>`;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(widgetCode);
+    toast("Code copied to clipboard");
+    setIsWidgetCodeOpen(false);
+  };
+
+  const widgetCode = `
+  <link rel="stylesheet" href="https://sakthii25.github.io/DocXplorer-widget/dist/docxplorer-widget.css">
+  <script src="https://sakthii25.github.io/DocXplorer-widget/dist/docxplorer-widget.js""></script>
+
+  <script>
+    window.initChatWidget({ elementId: 'chat-widget-container' });
+  </script>
+
+  <div id="chat-widget-container"></div>
+  `;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -326,34 +336,33 @@ const Home = () => {
         </DialogContent>
       </Dialog>
       <Dialog open={isWidgetCodeOpen} onOpenChange={setIsWidgetCodeOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md md:max-w-lg">
           <DialogHeader>
             <DialogTitle>Widget Embed Code</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Copy this code to embed the chat widget in your website:</Label>
-              <div className="relative">
-                <pre className="p-4 rounded-lg bg-muted font-mono text-sm">
-                  {widgetCode}
-                </pre>
+              <div className="relative rounded-lg overflow-hidden">
+                <div className="overflow-x-auto max-w-full">
+                  <pre className="p-4 rounded-lg bg-muted font-mono text-sm overflow-x-auto">
+                    {widgetCode}
+                  </pre>
+                </div>
                 <Button
                   variant="secondary"
                   size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={() => {
-                    navigator.clipboard.writeText(widgetCode);
-                    toast.success("Widget code copied to clipboard")
-                    setIsWidgetCodeOpen(false)
-                  }}
+                  className="absolute top-2 right-2 flex items-center gap-1"
+                  onClick={handleCopy}
                 >
-                  Copy
+                  <Copy size={14} />
+                  <span>Copy</span>
                 </Button>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsWidgetCodeOpen(false)}>
+            <Button variant="outline" onClick={() => {setIsWidgetCodeOpen(false)}}>
               Close
             </Button>
           </DialogFooter>
