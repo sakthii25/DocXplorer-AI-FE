@@ -13,6 +13,7 @@ const TestBot = () => {
   const [inputMessage, setInputMessage] = useState('');
   const bottomRef = useRef(null);
   const navigate = useNavigate();
+  const BASE_URL =  import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -31,7 +32,7 @@ const TestBot = () => {
     setInputMessage('');
   
     // Start fetching
-    fetch("http://0.0.0.0:8000/query-docs", {
+    fetch(`${BASE_URL}/query-docs`, {
       method: 'POST',
       headers: {
         'Accept': 'text/event-stream',

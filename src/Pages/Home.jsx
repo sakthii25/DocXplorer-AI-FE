@@ -19,9 +19,10 @@ const Home = () => {
   const [documents, setDocuments] = useState([]);
   const [isCreated, setIsCreated] = useState(false);
   const [isWidgetCodeOpen, setIsWidgetCodeOpen] = useState(false);
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/list-documents",
+    fetch(`${BASE_URL}/list-documents`,
       { method: 'GET',
         headers: {
           'Accept': 'application/json'
@@ -42,7 +43,7 @@ const Home = () => {
       return;
     }
     let payload = {"collection_name": collectionName, "summary_collection_name": summaryCollectionName}
-    fetch("http://127.0.0.1:8000/create-collection", 
+    fetch(`${BASE_URL}/create-collection`, 
       {
         method: 'POST',
         headers: {
@@ -82,7 +83,7 @@ const Home = () => {
     formData.append("file",selectedFile)
     formData.append("json_str",JSON.stringify(json_str))
 
-    fetch("http://127.0.0.1:8000/index-docs",
+    fetch(`${BASE_URL}/index-docs`,
       {
         method: 'POST',
         headers: {
@@ -108,7 +109,7 @@ const Home = () => {
   const handleDeleteDocument = (id) => {
     
     let payload = {"id": id,"collection_name": collectionName,"summary_collection_name": summaryCollectionName}
-    fetch("http://127.0.0.1:8000/delete-document",
+    fetch(`${BASE_URL}/delete-document`,
       {
         method: 'POST',
         headers: {
