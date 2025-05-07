@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { v4 as uuidv4 } from 'uuid';
@@ -11,7 +11,29 @@ const ApiKey = () => {
   const [apiKeys, setApiKeys] = useState([]);
   const [newKey, setNewKey] = useState(null);
   const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
+  const user_data = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
+    // const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const BASE_URL = "http://0.0.0.0:8000"
+
+  useEffect(() => {
+    let payload = {"user_email": user_data["email"]}
+    fetch(`${BASE_URL}/list-apikeys`,{
+      method: "POST",
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+      let keys = data['api_keys'] 
+      setApiKeys(keys)
+    })
+    .catch(error => console.error('Error:', error));
+
+  },[])
 
   const handleGenerateApiKey = () => {
     if (apiKeys.length >= 5) {
@@ -26,10 +48,25 @@ const ApiKey = () => {
     
 
     const generatedKey = {
-        id: `key_${Math.random().toString(36).substring(2, 10)}`,
+        // id: `key_${Math.random().toString(36).substring(2, 10)}`,
         key: fullKey,
         createdAt: new Date().toISOString(),
     };
+    let payload = {user_email: user_data['email'], api_key: fullKey, created_at: new Date().toISOString()}
+    fetch(`${BASE_URL}/add-apikey`,
+      { method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }
+    )
+    .then(response => response.json())
+    .then(_ => {
+      toast.success("API key created successfully");
+    })
+    .catch(error => console.error('Error:', error));
 
     setNewKey(generatedKey);
     console.log(showNewKeyDialog)
@@ -54,10 +91,29 @@ const ApiKey = () => {
   }; 
 
   const handleDeleteKey = (id) => {
-    setApiKeys(apiKeys.filter(key => key.id !== id));
-    toast.success("API key deleted successfully");
-  };
 
+    console.log(id)
+    let payload = {user_email:  user_data['email'], api_key: id};
+    console.log(payload)
+    fetch(`${BASE_URL}/delete-apikey`,
+      { method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }
+    )
+    .then(response => response.json())
+    .then(_ => {
+      setApiKeys(apiKeys.filter(key => key.key !== id)); 
+      toast.success("API key deleted successfully");
+    })
+    .catch(error => {
+      console.error('Error:', error)
+      toast.error("API key deletion failed")
+    });
+  };
   return (
     <div className="container mx-auto py-8 px-4">
       <Button 
@@ -97,7 +153,7 @@ const ApiKey = () => {
                     <Button 
                       variant="destructive" 
                       size="sm"
-                      onClick={() => handleDeleteKey(apiKey.id)}
+                      onClick={() => handleDeleteKey(apiKey.key)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

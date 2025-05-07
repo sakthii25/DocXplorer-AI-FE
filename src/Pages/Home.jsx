@@ -19,14 +19,21 @@ const Home = () => {
   const [documents, setDocuments] = useState([]);
   const [isCreated, setIsCreated] = useState(false);
   const [isWidgetCodeOpen, setIsWidgetCodeOpen] = useState(false);
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  // const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const BASE_URL = "http://0.0.0.0:8000"
+
+  const user_data = JSON.parse(localStorage.getItem("user"));
+
 
   useEffect(() => {
+    let payload = {user_email :  user_data['email']};
     fetch(`${BASE_URL}/list-documents`,
-      { method: 'GET',
+      { method: 'POST',
         headers: {
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         },
+        body: JSON.stringify(payload)
       }
     )
     .then(response => response.json())
@@ -35,6 +42,24 @@ const Home = () => {
       setDocuments(docs)
     })
     .catch(error => console.error('Error:', error));
+
+  fetch(`${BASE_URL}/list-collections`,
+    { method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    }
+  )
+  .then(response => response.json())
+  .then(data => {
+    setCollectionName(data['collectionName'])
+    setSummaryCollectionName(data['summaryCollectionName'])
+    setIsCreated(data['isCreated'])
+  })
+  .catch(error => console.error('Error:', error));
+
   },[])
 
   const handleCreateCollection = () => {
@@ -42,7 +67,7 @@ const Home = () => {
       toast.error("Please enter a collection name");
       return;
     }
-    let payload = {"collection_name": collectionName, "summary_collection_name": summaryCollectionName}
+    let payload = {user_email: user_data['email'],"collection_name": collectionName, "summary_collection_name": summaryCollectionName}
     fetch(`${BASE_URL}/create-collection`, 
       {
         method: 'POST',
@@ -61,9 +86,9 @@ const Home = () => {
       console.error("Error: ",error)
     })
     .finally(_ => {
-      setIsCreateCollectionOpen(false);
       setIsCreated(true);
     })
+    setIsCreateCollectionOpen(false);
   };
 
   const handleFileChange = (e) => {
@@ -79,7 +104,7 @@ const Home = () => {
     }
 
     let formData = new FormData();
-    let json_str = {"collection_name" :  collectionName,"summary_collection_name" : summaryCollectionName}
+    let json_str = {"user_email" : user_data['email'],"collection_name" :  collectionName,"summary_collection_name" : summaryCollectionName}
     formData.append("file",selectedFile)
     formData.append("json_str",JSON.stringify(json_str))
 
@@ -233,7 +258,7 @@ const Home = () => {
                       <TableCell className="font-medium">{doc.id.substring(0,8)}</TableCell>
                       <TableCell>{doc.document_name}</TableCell>
                       <TableCell>{doc.document_size}</TableCell>
-                      <TableCell>{doc.uploaded_date}</TableCell>
+                      <TableCell>{doc.uploaded_time.slice(0,10)}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => handleDeleteDocument(doc.id)}>
                           <Trash2 className="h-4 w-4" />

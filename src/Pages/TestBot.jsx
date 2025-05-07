@@ -11,9 +11,11 @@ import { Loader } from "lucide-react";
 const TestBot = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
+  const user_data = JSON.parse(localStorage.getItem("user"));
   const bottomRef = useRef(null);
   const navigate = useNavigate();
-  const BASE_URL =  import.meta.env.VITE_API_BASE_URL;
+  // const BASE_URL =  import.meta.env.VITE_API_BASE_URL;
+  const BASE_URL = "http://0.0.0.0:8000"
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -26,8 +28,7 @@ const TestBot = () => {
   
     const payload = {
       query: inputMessage,
-      collection_name: "test",
-      summary_collection_name: "test_summary"
+      user_email: user_data['email']
     };
     setInputMessage('');
   
